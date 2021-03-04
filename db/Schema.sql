@@ -14,7 +14,6 @@ CREATE TABLE department (
   name VARCHAR(30) UNIQUE NOT NULL,
 );
 
-
 -- Creates the second table "role" within company_db --
 CREATE TABLE role (
   -- Creates a numeric column called "id" which will automatically increment its default value as we create new rows --
@@ -28,8 +27,6 @@ CREATE TABLE role (
   INDEX dep_ind (department_id)
   CONSTRAINT fk_department FOREIGN KEY (department_id) REFERENCES department(id) ON DELETE CASCADE
 );
-
-
 
 
 -- Creates the table "employee" within company_db --
@@ -55,23 +52,7 @@ CREATE TABLE employee (
 );
 
 
-INSERT INTO employee ((first_name, last_name, role_id, manager_id) VALUES ("Sarah", "Lourd", 7, );
 
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Ashley", "Rodriquez", 5, );
-
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Jane", "Doe", 3, 5);
-
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Kevin", "Tupik", 4, 5);
-
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Mike", "Chan", 1, 3 );
-
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Malia", "Brown",  6, );
-
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Hitesh", "Seth", 4, 4);
-
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Jim", "Kimmel", 5, 1;
-
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Kim", "Yen", 8, 1);
 
 
 
