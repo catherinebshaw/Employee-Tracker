@@ -8,9 +8,7 @@ const { delDept } = require('./db/index');
 const db = require('./db/index')
 //initialize program
 var employee 
-var empRole_id;
-var empMid;
-
+var role
 var department
 
 init();
@@ -127,6 +125,7 @@ async function viewAllMgr()  {
 async function addNewEmployee() {
     let roles = await db.roleSearch()
     console.log(roles)
+    var choices = new Choices ([])
     let manager = await db.mgrSearch()
     console.log(manager)
 
@@ -143,13 +142,14 @@ async function addNewEmployee() {
             },
             {
                 type: 'list',
-                name: 'title',
+                name: 'role',
                 message: 'What will the role of the new Employee be?',
                 choices(){
                     const fullRoleList = []
-                    roles.forEach(({id, Title}) => {
-                        fullRoleList.push(id + ' ' + Title);
+                    roles.forEach(({title}) => {
+                        fullRoleList.push(title);
                     });
+                    console.log(fullRoleList)
                     return fullRoleList;
                 },
             },
@@ -159,28 +159,43 @@ async function addNewEmployee() {
                 message: 'Who will be the Manager of the new employee?',
                 choices(){
                     const managerList = []
-                    manager.forEach(({id, first_name, last_name}) => {
-                        managerList.push(id + ' ' + first_name + ' ' + last_name);
+                    manager.forEach(({first_name, last_name, id}) => {
+                        managerList.push({
+                            first_name: `${first_name}`, 
+                            last_name: `${last_name}`, 
+                            id: id});
                     });
-                    return managerList;
+                    return fullRoleList;
                 },
             },
-        ]);
-    var result = newEmp.title.split(' ')
-    var role = result[0]
-    var mgr = newEmp.manager.split(' ')
-    var empMid = mgr[0] 
+    ]);
+    // let role_num;
+    // if (newEmp.role === 'Sales Rep'){ role_num = 1} 
+    // else if (newEmp.role === 'Sales Lead'){role_num = 3}
+    // else if (newEmp.role === 'Software Engineer'){role_num = 4}
+    // else if (newEmp.role === 'Accountant'){role_num = 6}
+    // else if (newEmp.role === 'Lawyer'){role_num = 8}
 
-    var employee = {
-        first_name: newEmp.first_name,
-        last_name: newEmp.last_name,
-        role_id: role,
-        manager_id: empMid,
+    // let mgr;
+    // if (newEmp.role === 'Sales Rep'){ mgr = 4} 
+    // else if (newEmp.role === 'Sales Lead'){mgr = 2}
+    // else if (newEmp.role === 'Software Engineer'){mgr = 2}
+    // else if (newEmp.role === 'Accountant'){mgr = 10}
+    // else if (newEmp.role === 'Lawyer'){mgr = 1}
+
+    var newEmployee = {
+        first_name : newEmp.first_name,
+        last_name : newEmp.last_name,
+        role_id : newEmp.role,
+        manager_id : newEmp.manager.id
     }
-    console.log('adding New Employee:', employee)
-    db.addEmployee(employee)
 
+    db.addEmployee(newEmployee);
+    console.log("new employeed added:")
+    console.table(newEmployee)
     runSearch()
+    // var createEmp = await db.addEmployee(newEmployee);
+    // console.log(createEmp);
 
 }
 
