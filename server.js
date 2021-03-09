@@ -363,16 +363,10 @@ async function updateRole(){
         var employeeID = parseInt(answer[0])
         var job = update.role.split(' ')
         var roleID = parseInt(job[0])
-
-        // var updateRole = 
-        //     {   role_id: roleID,
-        //         id: employeeID
-        //         }
             
         console.log(employeeID, roleID)
-        let results = await db.editRole(roleID,employeeID);
+        db.editRole(roleID,employeeID);
         
-        console.table(results)
         runSearch()       
 
 }
