@@ -1,10 +1,7 @@
 const inquirer = require('inquirer');
 const Choices = require('inquirer/lib/objects/choice')
-// const { prompt } = require('inquirer');
-// const { Server } = require('node:http');
 const { inherits } = require('util');
-const { delDept } = require('./db/index');
-// const { employeeSearch, roleSearch } = require('./db/index');
+const { delDept, addDept } = require('./db/index');
 const db = require('./db/index')
 //initialize program
 var employee 
@@ -26,29 +23,35 @@ async function runSearch(){
       type: 'list',
       message: 'What would you like to do today?',
       choices: [
-        {   name: 'Review a list of all our employees',
-            value: "VIEW_EMPLOYEES",
-        },
-        {   name: 'Review a list of all departments and associated budgets',
-            value: "VIEW_DEPARTMENTS",
-        },
-        {   name: 'Review a list of roles within the company',
-            value: "VIEW_ROLES",
-        },
-        {   name: 'View all managers',
-            value: "VIEW_STAFF_BY_MGR",
-        },
         {   name: 'Add a new employee',
             value: "ADD-EMPLOYEE",
         },
         {   name: 'Add a new role to the Company',
             value: "ADD_ROLE",
         },
+        {   name: 'Add a new department to the Company',
+            value: "ADD_DEPARTMENT",
+        },   
+        {   name: 'Review a list of all the departments and associated budgets',
+            value: "VIEW_DEPARTMENTS",
+        },
+        {   name: 'Review a list of roles within the company',
+            value: "VIEW_ROLES",
+        },
+        {   name: 'Review a list of all the employees',
+            value: "VIEW_EMPLOYEES",
+        },
+        {   name: 'View the employees working for a specific manager',
+            value: "VIEW_STAFF_BY_MGR",
+        },
         {   name: 'Change the role of an employee in the organization',
             value: "EDIT_ROLE",
         },
-        {   name: 'Change or add a department',
-            value: "CHANGE_DEPARTMENT",
+        {   name: 'Delete a department',
+            value: "DELETE_DEPARTMENT",
+        },
+        {   name: 'Remove an employee from the organization',
+            value: "DELETE_EMPLOYEE",    
         },
         {   name: 'Quit',
             value: "QUIT",
@@ -60,6 +63,18 @@ async function runSearch(){
 
 //activate functions depending on response to prompts
     switch (action) {
+        case "ADD-EMPLOYEE":
+            addNewEmployee()  
+            break;
+            
+        case "ADD_ROLE":
+            addRole()  
+            break;
+
+        case "ADD_DEPARTMENT":
+            addDepartment()
+            break;
+
         case "VIEW_EMPLOYEES":
             viewAllEmployee();
             break;
@@ -76,20 +91,12 @@ async function runSearch(){
             viewAllMgr()
             break;
 
-        case "ADD-EMPLOYEE":
-            addNewEmployee()  
-            break;
-          
-        case "ADD_ROLE":
-            addRole()  
-            break;
-
         case "EDIT_ROLE":
             updateRole()  
             break;
 
-        case "CHANGE_DEPARTMENT":
-            changeDept()  
+        case "DELETE_DEPARTMENT":
+            deleteDept()  
             break;
 
         case "DELETE_EMPLOYEE":
@@ -102,37 +109,11 @@ async function runSearch(){
     
 };
 
-//collect db search results to a variable and display in console
-async function viewAllEmployee()  {
-   
-    let results = await db.employeeSearch();
-    console.table(results)
-    runSearch();
-}
-
-async function viewAllDeparments()  {
-    let results = await db.departmentSearch();
-    console.table(results);   
-    runSearch();
-}
-
-async function viewRoles()  {
-    let results = await db.roleSearch();
-    console.table(results);
-    runSearch();
-}
-
-async function viewAllMgr()  {
-    let results = await db.mgrSearch();
-    console.table(results);
-    runSearch();
-}
-
+//add an employee
 async function addNewEmployee() {
+    //get roles and managers from db for inquirer choices
     let roles = await db.roleSearch()
-    console.log(roles)
-    let manager = await db.mgrSearch()
-    console.log(manager)
+    let manager = await db.getEmpName()
 
     var newEmp = await inquirer.prompt([
             {
@@ -151,8 +132,8 @@ async function addNewEmployee() {
                 message: 'What will the role of the new Employee be?',
                 choices(){
                     const fullRoleList = []
-                    roles.forEach(({id, Title}) => {
-                        fullRoleList.push(id + ' ' + Title);
+                    roles.forEach(({id, title}) => {
+                        fullRoleList.push(id + ' ' + title);
                     });
                     return fullRoleList;
                 },
@@ -174,7 +155,7 @@ async function addNewEmployee() {
     var role = result[0]
     var mgr = newEmp.manager.split(' ')
     var empMid = mgr[0] 
-
+    //new object to be added to database
     var employee = {
         first_name: newEmp.first_name,
         last_name: newEmp.last_name,
@@ -182,16 +163,19 @@ async function addNewEmployee() {
         manager_id: empMid,
     }
     console.log('adding New Employee:', employee)
+    //command to the database on index.js
     db.addEmployee(employee)
 
     runSearch()
 
 }
-
+//add a new role
 async function addRole(){
+    //pull roles and departments from database for inquirer choices
     let roles = await db.roleSearch()
     let department = await db.getDept()
-    console.log(department)
+    console.log("The current roles in the company are:")
+    console.table(roles)
 
     var newRole = await inquirer.prompt([
             {
@@ -218,47 +202,109 @@ async function addRole(){
 
             },
     ])
-
+    //split out inquirer choice to isolate department id
     var result = newRole.department.split(' ')
     var dept = result[0]
-
+    //new role object to be added to the database
     var newRole = {
         title : newRole.title,
         salary : newRole.salary,
         department_id : dept,
     }
-    
+    //make sure it doesn't already exist or error will occur
     const roleName = []
     roles.forEach(({Title}) => {
         roleName.push(Title);
     });
-    if (newRole.title === roleName.Title){
-        console.log('that name is not recognized or already exists, please select another')
+    try {
+        if (newRole.title === roleName.Title) throw "That role already exists";
+    } catch(err) {
         addRole()
-    } else {
+    }
+        
+    //add new role to the database
     db.addRole(newRole);
     console.log("new role added:",  newRole)
     console.table(newRole)
-    }
+    
     runSearch()       
 
 }
-
-async function changeDept(){
+//add a new department
+async function addDepartment(){
     let department = await db.getDept()
-    console.log(department)
+    console.log("The current departments in the company are:")
+    console.table(department)
+
+    var response = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'department',
+            message: 'What department would you like to add?',
+        },
+    ]);
+
+    
+    console.log("adding new department:", response.department)
+    db.addDept(response.department)
+    
+    runSearch()
+}
+
+async function viewAllEmployee()  {
+    let results = await db.employeeSearch();
+    console.table(results)
+    runSearch();
+}
+
+async function viewAllDeparments()  {
+    let results = await db.departmentSearch();
+    console.table(results);   
+    runSearch();
+}
+
+async function viewRoles()  {
+    let results = await db.roleSearch();
+    console.table(results);
+    runSearch();
+}
+
+async function viewAllMgr()  {
+    let managers = await db.mgrSearch(); 
+    const response = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'name',
+            message: 'Choose the manager:',
+            choices(){
+                const mgrList = []
+                managers.forEach(({id, first_name, last_name}) => {
+                   mgrList.push(id + ' ' + first_name + ' ' + last_name);
+                });
+                return mgrList; 
+            }
+        },
+])
+        console.log("Employees for manager:", response)
+        var result = response.name.split(' ')
+        var mgrAll = result[0]
+
+        let empbymgr = await db.employeebyMgr(mgrAll)
+
+    console.table(empbymgr);
+    runSearch();
+}
+
+
+async function deleteDept(){
+    let department = await db.getDept()
+    console.log('These are the current departments:')
+    console.table(department)
     const response = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'action',
-                message: 'Would you like to edit or delete a department?',
-                choices: [{ value: 'edit', name: 'Edit Department'}, 
-                        {value: 'del', name: 'Delete Department'}]
-            },
-            {
-                type: 'list',
                 name: 'name',
-                message: 'Choose the department:',
+                message: 'Choose the department you would like to delete:',
                 choices(){
                     const deptList = []
                     department.forEach(({id, name}) => {
@@ -269,35 +315,14 @@ async function changeDept(){
             },
     ])
 
-    console.log("chosen action:", response)
     var result = response.name.split(' ')
     var deptName = result[1]
-    if( response.action === 'del'){
-        db.delDept(deptName)
-        }
-        else if ( response.action === 'edit'){
-            editDept(deptName)
-    }
-
-    async function editDept(deptName){
-        const response = await inquirer.prompt([
-            {
-                type: 'input',
-                name: 'name',
-                message: 'What would you like the new department name to be?'
-            }
-            ])
-        
-            var updatedDept = {
-            id: deptName[0],
-            name: response.name,
-        }
-        db.editDept(updatedDept)
-        console.log( `updating department name to ${response.name}`)
-    }
     
-    runSearch()       
-
+    db.delDept(deptName)
+    console.log( 'Deleting the following department:', deptName)
+    
+    runSearch()
+   
 }
 
 async function updateRole(){
@@ -306,9 +331,7 @@ async function updateRole(){
     console.table(employees)
     var roles = await db.roleSearch();
     console.table(roles)
-    var mgr = await db.mgrSearch();
-    console.table(mgr)
-
+    
         var update = await inquirer.prompt([
             {
                 type: 'list',
@@ -328,41 +351,28 @@ async function updateRole(){
                 message: 'What new role would you like to assign to this employee?',
                 choices(){
                     const rolesList = []
-                    roles.forEach(({id, Title}) => {
-                        rolesList.push(id + ' ' + Title);
+                    roles.forEach(({id, title}) => {
+                        rolesList.push(id + ' ' + title);
                     });
                     return rolesList; 
                 }
             },
-            // {
-            //     type: 'list',
-            //     name: 'manager',
-            //     message: 'Who will manage this employee?',
-            //     choices(){
-            //         const mgrList = []
-            //         mgr.forEach(({id, first_name, last_name}) => {
-            //             mgrList.push(id + ' ' + first_name + ' ' + last_name);
-            //         });
-            //         return mgrList; 
-            //     }
-            // },
         ])
-        console.log('updating employee:', update)
 
         var answer = update.name.split(' ')
         var employeeID = parseInt(answer[0])
         var job = update.role.split(' ')
-        var role_id = parseInt(job[0])
-        // var newMgr = update.manager.split(' ')
-        // var empMgrID = parseInt(newMgr[0])
+        var roleID = parseInt(job[0])
 
-        var updateRole = 
-            {   id: employeeID,
-                role_id: role_id}
-            // manager_id: empMgrID }
-
-        db.editRole(updateRole);
-        console.table(updateRole)
+        // var updateRole = 
+        //     {   role_id: roleID,
+        //         id: employeeID
+        //         }
+            
+        console.log(employeeID, roleID)
+        let results = await db.editRole(roleID,employeeID);
+        
+        console.table(results)
         runSearch()       
 
 }
@@ -387,11 +397,9 @@ async function deleteEmployee(){
     ])
     var empID = result.name.split(' ')
     var employeeID = parseInt(empID[0])
-    var delEmpl = { 
-        id: employeeID }
 
-    delEmployee(delEmpl);
-    console.log(`Employee ${delEmpl} has been removed`)
+    db.delEmployee(employeeID);
+    console.log('An employee with this ID has been removed:', employeeID)
     runSearch()       
 
 }
