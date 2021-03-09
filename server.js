@@ -41,7 +41,7 @@ async function runSearch(){
         {   name: 'Add a new employee',
             value: "ADD-EMPLOYEE",
         },
-        {   name: 'Change a role in the company',
+        {   name: 'Add a new role to the Company',
             value: "ADD_ROLE",
         },
         {   name: 'Change the role of an employee in the organization',
@@ -90,6 +90,10 @@ async function runSearch(){
 
         case "CHANGE_DEPARTMENT":
             changeDept()  
+            break;
+
+        case "DELETE_EMPLOYEE":
+            deleteEmployee()
             break;
 
         default:
@@ -185,6 +189,10 @@ async function addNewEmployee() {
 }
 
 async function addRole(){
+    let roles = await db.roleSearch()
+    let department = await db.getDept()
+    console.log(department)
+
     var newRole = await inquirer.prompt([
             {
                 type: 'input',
@@ -200,157 +208,190 @@ async function addRole(){
                 type: 'list',
                 name: 'department',
                 message: 'What department would that role be a part of?',
-                choices:['Sales', 'Finance', 'Engineering', 'Legal']
+                choices(){
+                    const deptList = []
+                    department.forEach(({id, name}) => {
+                        deptList.push(id + ' ' + name);
+                    });
+                    return deptList;    
+                }
 
             },
     ])
 
-    let dept_num;
-    if (newRole.department === 'Sales'){ dept_num = 1} 
-    else if (newRole.department === 'Engineering'){dept_num = 2}
-    else if (newRole.department === 'Finance'){dept_num = 3}
-    else if (newRole.department === 'Legal'){dept_num = 4}
+    var result = newRole.department.split(' ')
+    var dept = result[0]
 
     var newRole = {
         title : newRole.title,
         salary : newRole.salary,
-        department_id : dept_num,
+        department_id : dept,
     }
-    let result = await db.addRole(newRole);
-    console.log("new role added:")
+    
+    const roleName = []
+    roles.forEach(({Title}) => {
+        roleName.push(Title);
+    });
+    if (newRole.title === roleName.Title){
+        console.log('that name is not recognized or already exists, please select another')
+        addRole()
+    } else {
+    db.addRole(newRole);
+    console.log("new role added:",  newRole)
     console.table(newRole)
+    }
     runSearch()       
 
 }
 
 async function changeDept(){
-    let departments =  [
-        {id: 1, name: 'Sales'},
-        {id: 2, name: 'Engineering'},
-        {id: 3, name: 'Finance'},
-        {id: 4, name: 'Legal'},
-    ]
-
-    departments.push({ id: 0, name: "+ New Department"})
+    let department = await db.getDept()
+    console.log(department)
     const response = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'action',
-                message: 'What department action shall we do?',
-                choices: [{ value: 'edit', name: 'Add/Edit Department'}, 
+                message: 'Would you like to edit or delete a department?',
+                choices: [{ value: 'edit', name: 'Edit Department'}, 
                         {value: 'del', name: 'Delete Department'}]
             },
             {
                 type: 'list',
                 name: 'name',
                 message: 'Choose the department:',
-                choices: departments
+                choices(){
+                    const deptList = []
+                    department.forEach(({id, name}) => {
+                        deptList.push(id + ' ' + name);
+                    });
+                    return deptList; 
+                }
             },
     ])
 
     console.log("chosen action:", response)
-
+    var result = response.name.split(' ')
+    var deptName = result[1]
     if( response.action === 'del'){
-        delDept()}
+        db.delDept(deptName)
+        }
         else if ( response.action === 'edit'){
-            editDept()}
-            else {addDept()}
-
-    async function delDept(){
-        let result = await db.delDept(response.name)
-        console.log( `deleting ${response.name}`)
+            editDept(deptName)
     }
 
-    // async function editDept(){
-
-    //         const response = await inquirer.prompt([
-    //             {
-    //                 type: 'input',
-    //                 name: 'name',
-    //                 message: 'What would you like the new department name to be?'
-    //             }
-    //             ])
+    async function editDept(deptName){
+        const response = await inquirer.prompt([
+            {
+                type: 'input',
+                name: 'name',
+                message: 'What would you like the new department name to be?'
+            }
+            ])
         
-    //     db.editDept(response.name)
-    //     console.log( `updating department name to ${response.name}`)
-    // }
+            var updatedDept = {
+            id: deptName[0],
+            name: response.name,
+        }
+        db.editDept(updatedDept)
+        console.log( `updating department name to ${response.name}`)
+    }
     
-    //         var chgDept = 
-    //             {   id: response.name,
-    //                 name: update.name }
-
-    //         let result = await db.editDept(chgDept)
-    //             console.log( `editing ${response.department_id}`)
-    //             } else  { 
-    //                 let result = await db.addDept(chgDept)
-    //                 console.log( `adding new department !`)
-    //         } else {console.log( 'Sorry unable to do this! try again')
-    //     }
-    //     }
-    // }
- 
-    // console.table(newDept)
     runSearch()       
 
 }
 
 async function updateRole(){
 
-    var employees = await db.getEmployees();
+    var employees = await db.getEmpName();
     console.table(employees)
+    var roles = await db.roleSearch();
+    console.table(roles)
+    var mgr = await db.mgrSearch();
+    console.table(mgr)
 
-    var update = await inquirer.prompt([
+        var update = await inquirer.prompt([
             {
-                type: 'input',
+                type: 'list',
                 name: 'name',
-                message: "What is the index number associated with the employee?",
+                message: 'Choose the employee:',
+                choices(){
+                    const empList = []
+                    employees.forEach(({id, first_name, last_name}) => {
+                        empList.push(id + ' ' + first_name + ' ' + last_name);
+                    });
+                    return empList; 
+                }
             },
             {
-                type: 'input',
+                type: 'list',
                 name: 'role',
-                message: 'What new role would you like to assign to this employee',
-            }
-    ])
+                message: 'What new role would you like to assign to this employee?',
+                choices(){
+                    const rolesList = []
+                    roles.forEach(({id, Title}) => {
+                        rolesList.push(id + ' ' + Title);
+                    });
+                    return rolesList; 
+                }
+            },
+            // {
+            //     type: 'list',
+            //     name: 'manager',
+            //     message: 'Who will manage this employee?',
+            //     choices(){
+            //         const mgrList = []
+            //         mgr.forEach(({id, first_name, last_name}) => {
+            //             mgrList.push(id + ' ' + first_name + ' ' + last_name);
+            //         });
+            //         return mgrList; 
+            //     }
+            // },
+        ])
+        console.log('updating employee:', update)
 
-    if (update.role === 'Sales Rep'){ role_num = 1} 
-    else if (update.role === 'Sales Lead'){role_num = 3}
-    else if (update.role === 'Software Engineer'){role_num = 4}
-    else if (update.role === 'Lead Engineer'){role_num = 5}
-    else if (update.role === 'Financial Team Lead'){role_num = 10}
-    else if (update.role === 'Accountant'){role_num = 6}
-    else if (update.role === 'Lawyer'){role_num = 8}
-    else if (update.role === 'Legal Team Lead'){role_num = 17}
+        var answer = update.name.split(' ')
+        var employeeID = parseInt(answer[0])
+        var job = update.role.split(' ')
+        var role_id = parseInt(job[0])
+        // var newMgr = update.manager.split(' ')
+        // var empMgrID = parseInt(newMgr[0])
 
+        var updateRole = 
+            {   id: employeeID,
+                role_id: role_id}
+            // manager_id: empMgrID }
 
-    var updatedRole = 
-        {   role_id: update.role_nm,
-            id : update.id, }
-
-    let result = await db.editRole(updatedRole);
-    console.table(updatedRole)
-    runSearch()       
+        db.editRole(updateRole);
+        console.table(updateRole)
+        runSearch()       
 
 }
 
 async function deleteEmployee(){
-    var employees = {};
     var employees = await db.getEmpName();
     console.table(employees)
     
     var result = await inquirer.prompt([
-            {
-                type: 'input',
-                name: 'id',
-                message: 'What is the index number of the employee you would like to remove?',
-            },
+        {
+            type: 'list',
+            name: 'name',
+            message: 'Choose the employee you would like to remove',
+            choices(){
+                const empList = []
+                employees.forEach(({id, first_name, last_name}) => {
+                    empList.push(id + ' ' + first_name + ' ' + last_name);
+                });
+                return empList; 
+            }
+        },
     ])
-
-    
+    var empID = result.name.split(' ')
+    var employeeID = parseInt(empID[0])
     var delEmpl = { 
-        id: result.id, }
-    let deleted = await db.delEmployee(delEmpl);
-    console.log("This employee has been removed:")
-    console.table(deleted )
+        id: employeeID }
+
+    delEmployee(delEmpl);
+    console.log(`Employee ${delEmpl} has been removed`)
     runSearch()       
 
 }
