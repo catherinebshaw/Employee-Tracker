@@ -8,7 +8,7 @@ Users are provided with a menu of functions for accessing and managing the data 
 The application uses a mySQL database to store the information. Inquirer is used to facilitate user choices and javaScript is used to access information on the database and present it to the user in the terminal. All data is presented in the Terminal through node. 
 
 ## Mock-Up
-![Output in Terminal]()
+![Output in Terminal](https://github.com/catherinebshaw/Employee-Tracker/blob/main/Assets/Employee%20Tracker%201.png)
 
 ## Video Walkthrough
 [Video walkthrough of App](https://drive.google.com/file/d/1hgNG0SXFoHYI5eNzywCLzxIl8maoQcv9/view)
